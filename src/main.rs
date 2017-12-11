@@ -9,6 +9,7 @@ use imageproc::drawing::{draw_line_segment_mut};
 use rand::distributions::{IndependentSample, Normal};
 use palette::{Lab, Rgb, Gradient};
 use rayon::prelude::*;
+use std::time::Instant;
 
 type Image = ImageBuffer<Luma<f32>, Vec<f32>>;
 
@@ -62,7 +63,9 @@ fn main() {
         y
     }).collect();
 
-    let aggregated = (0..5000)
+    let now = Instant::now();
+
+    let aggregated = (0..100)
         .into_par_iter()
         .map(|_| {
             // add some noise
@@ -84,6 +87,8 @@ fn main() {
             run_series(series, width, height)
         })
         .reduce(|| Image::new(width, height), sum_images);
+
+    println!("Took {}s", now.elapsed().as_secs());
 
     // color scale to convert from value to a color
     let color_scale = Gradient::new(vec![
