@@ -2,74 +2,88 @@ extern crate image;
 extern crate imageproc;
 extern crate rand;
 extern crate palette;
+extern crate rayon;
 
 use image::{Luma, ImageBuffer, RgbImage};
-use imageproc::drawing::{draw_line_segment_mut, draw_filled_rect_mut};
-use imageproc::rect::Rect;
-use rand::distributions::{IndependentSample, Range};
+use imageproc::drawing::{draw_line_segment_mut};
+use rand::distributions::{IndependentSample, Normal};
 use palette::{Lab, Rgb, Gradient};
-
-/// Returns a vector of length `size` with numbers in the range `[0, maximum)`.
-fn vector(size: u32, maximum: u32) -> Vec<u32> {
-    let mut zero_vec: Vec<u32> = Vec::with_capacity(size as usize);
-    let between = Range::new(0, maximum);
-    let mut rng = rand::thread_rng();
-
-    for _ in 0..size {
-        zero_vec.push(between.ind_sample(&mut rng));
-    }
-    
-    return zero_vec;
-}
+use rayon::prelude::*;
 
 type Image = ImageBuffer<Luma<f32>, Vec<f32>>;
 
-
-fn main() {
-    let width = 300;
-    let height = 200;
-
-    let series = vector(width, height);
-
+fn run_series(series: Vec<u32>, width: u32, height: u32) -> Image {
+    // initialize new image
     let mut data = Image::new(width, height);
-    let mut aggregated = Image::new(width, height);
 
-    for _ in 0..50000 {
-        // draw the time series as a line
-        for x in 0..series.len() - 1 {
-            draw_line_segment_mut(
-                &mut data,
-                (x as f32, series[x] as f32),
-                ((x + 1) as f32, series[x + 1]  as f32),
-                Luma([1.0]),
-            );
-        }
-
-        // normalize
-        for x in 0..width {
-            let mut sum = 0.0;
-            for y in 0..height {
-                sum += data.get_pixel(x,y).data[0];
-            }
-            for y in 0..height {
-                let value = data.get_pixel(x,y).data[0];
-                data.put_pixel(x,y,Luma([value / sum]));
-            }
-        }
-
-        // add to one matrix with the sum
-        for (x,y,value) in data.enumerate_pixels() {
-            let new_value = aggregated.get_pixel(x,y).data[0] + value.data[0];
-            aggregated.put_pixel(x,y,Luma([new_value]))
-        }
-
-        // reset the canvas
-        draw_filled_rect_mut(
+    // draw the time series as a line
+    for x in 0..series.len() - 1 {
+        draw_line_segment_mut(
             &mut data,
-            Rect::at(0, 0).of_size(width, height),
-            Luma([0.0]),
+            (x as f32, series[x] as f32),
+            ((x + 1) as f32, series[x + 1]  as f32),
+            Luma([1.0]),
         );
     }
+
+    // normalize
+    for x in 0..width {
+        let mut sum = 0.0;
+        for y in 0..height {
+            sum += data.get_pixel(x,y).data[0];
+        }
+        for y in 0..height {
+            let value = data.get_pixel(x,y).data[0];
+            data.put_pixel(x,y,Luma([value / sum]));
+        }
+    }
+
+    data
+}
+
+fn sum_images(image: Image, mut aggregated: Image) -> Image {
+    for (x,y,value) in image.enumerate_pixels() {
+        let new_value = aggregated.get_pixel(x,y).data[0] + value.data[0];
+        aggregated.put_pixel(x,y,Luma([new_value]))
+    }
+
+    aggregated
+}
+
+fn main() {
+    let width = 400;
+    let height = 300;
+
+    // create sine wave as a model
+    let model: Vec<f32> = (0..width).map(|x| {
+        let heightf = height as f32;
+        let xf = x as f32;
+        let y = heightf/4.0 * (xf/20.0).sin() + heightf/2.0;
+        y
+    }).collect();
+
+    let aggregated = (0..5000)
+        .into_par_iter()
+        .map(|_| {
+            // add some noise
+            let normal = Normal::new(0.0, 12.0);
+            let mut rng = rand::thread_rng();
+
+            model.iter().map(|v| {
+                let value = v + normal.ind_sample(& mut rng) as f32;
+                if value < 0.0 {
+                    0u32
+                } else if value > height as f32 {
+                    height
+                } else {
+                    value as u32
+                }
+            }).collect()
+        })
+        .map(|series| {
+            run_series(series, width, height)
+        })
+        .reduce(|| Image::new(width, height), sum_images);
 
     // color scale to convert from value to a color
     let color_scale = Gradient::new(vec![
