@@ -10,10 +10,11 @@ use rand::distributions::{IndependentSample, Normal};
 use palette::{Lab, Rgb, Gradient};
 use rayon::prelude::*;
 use std::time::Instant;
+use std::env;
 
 type Image = ImageBuffer<Luma<f32>, Vec<f32>>;
 
-fn run_series(series: Vec<u32>, width: u32, height: u32) -> Image {
+fn run_series(series: &Vec<u32>, width: u32, height: u32) -> Image {
     // initialize new image
     let mut data = Image::new(width, height);
 
@@ -42,6 +43,7 @@ fn run_series(series: Vec<u32>, width: u32, height: u32) -> Image {
     data
 }
 
+/// Reducer that combines counts from two time series.
 fn sum_images(image: Image, mut aggregated: Image) -> Image {
     for (x,y,value) in image.enumerate_pixels() {
         let new_value = aggregated.get_pixel(x,y).data[0] + value.data[0];
@@ -52,8 +54,28 @@ fn sum_images(image: Image, mut aggregated: Image) -> Image {
 }
 
 fn main() {
+    let now = Instant::now();
+
     let width = 400;
     let height = 300;
+
+
+    // parse command line argument
+    let args: Vec<_> = env::args().collect();
+    let mut iterations = 100;
+
+    if args.len() == 2 {
+        iterations = match args[1].parse() {
+            Ok(n) => {
+                n
+            },
+            Err(_) => {
+                println!("error: argument not an integer");
+                return;
+            },
+        };
+    }
+    
 
     // create sine wave as a model
     let model: Vec<f32> = (0..width).map(|x| {
@@ -63,32 +85,34 @@ fn main() {
         y
     }).collect();
 
+    let data: Vec<Vec<u32>> = (0..iterations).map(|_| {
+        // add some noise
+        let normal = Normal::new(0.0, 12.0);
+        let mut rng = rand::thread_rng();
+
+        model.iter().map(|v| {
+            let value = v + normal.ind_sample(& mut rng) as f32;
+            if value < 0.0 {
+                0u32
+            } else if value > height as f32 {
+                height
+            } else {
+                value as u32
+            }
+        }).collect()
+    }).collect();
+
+    println!("Preparing data took {}s", now.elapsed().as_secs());
     let now = Instant::now();
 
-    let aggregated = (0..100)
-        .into_par_iter()
-        .map(|_| {
-            // add some noise
-            let normal = Normal::new(0.0, 12.0);
-            let mut rng = rand::thread_rng();
-
-            model.iter().map(|v| {
-                let value = v + normal.ind_sample(& mut rng) as f32;
-                if value < 0.0 {
-                    0u32
-                } else if value > height as f32 {
-                    height
-                } else {
-                    value as u32
-                }
-            }).collect()
-        })
+    let aggregated = data
+        .par_iter()
         .map(|series| {
-            run_series(series, width, height)
+            run_series(&series, width, height)
         })
         .reduce(|| Image::new(width, height), sum_images);
 
-    println!("Took {}s", now.elapsed().as_secs());
+    println!("Computing line density took {}s", now.elapsed().as_secs());
 
     // color scale to convert from value to a color
     let color_scale = Gradient::new(vec![
@@ -105,7 +129,7 @@ fn main() {
     );
 
     // create output image
-    for (x,y,pixel) in aggregated.enumerate_pixels() {
+    for (x, y, pixel) in aggregated.enumerate_pixels() {
         let value = pixel.data[0];
         if value == 0.0 {
             img.put_pixel(x,y,image::Rgb([255,255,255]));
