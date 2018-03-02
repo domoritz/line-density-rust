@@ -7,7 +7,7 @@ extern crate rayon;
 use image::{Luma, ImageBuffer, RgbImage};
 use imageproc::drawing::{draw_line_segment_mut};
 use rand::distributions::{IndependentSample, Normal};
-use palette::{Lab, Rgb, Gradient};
+use palette::{Lab, LinSrgb, Gradient};
 use rayon::prelude::*;
 use std::time::Instant;
 use std::env;
@@ -116,8 +116,8 @@ fn main() {
 
     // color scale to convert from value to a color
     let color_scale = Gradient::new(vec![
-        Lab::from(Rgb::new_u8(247, 252, 241)),
-        Lab::from(Rgb::new_u8(14, 66, 127))
+        Lab::from(LinSrgb::new_u8(247, 252, 241)),
+        Lab::from(LinSrgb::new_u8(14, 66, 127))
     ]);
 
     let mut img = RgbImage::new(width, height);
@@ -134,7 +134,7 @@ fn main() {
         if value == 0.0 {
             img.put_pixel(x,y,image::Rgb([255,255,255]));
         } else {
-            let color = Rgb::from(color_scale.get(value / max_value));
+            let color = LinSrgb::from(color_scale.get(value / max_value));
             let converted_color = image::Rgb([
                 (color.red * 255.0).round() as u8,
                 (color.green * 255.0).round() as u8,
