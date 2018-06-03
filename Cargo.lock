@@ -235,7 +235,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "line-density"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "image 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "imageproc 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
