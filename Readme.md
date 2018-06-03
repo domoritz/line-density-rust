@@ -21,7 +21,7 @@ cargo build --relase
 target/release/line-density
 ```
 
-To run an experiment with one million time series, run `target/release/line-density 100000`.
+To run an experiment with one million time series, run `target/release/line-density 1000000`.
 
 ## Limitations
 
