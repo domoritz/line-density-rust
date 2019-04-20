@@ -5,7 +5,7 @@ authors = ["Dominik Moritz <domoritz@gmail.com>"]
 
 [dependencies]
 imageproc = "0.16"
-image = "*"
+image = "0.20.1"
 rand = "*"
 palette = "*"
 rayon = "*"
