@@ -4,8 +4,8 @@ version = "0.2.0"
 authors = ["Dominik Moritz <domoritz@gmail.com>"]
 
 [dependencies]
-imageproc = "*"
-image = "*"
+imageproc = "0.16"
+image = "0.20.1"
 rand = "*"
 palette = "*"
 rayon = "*"
