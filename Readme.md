@@ -17,7 +17,7 @@ You can pass the number of time series that should be generated as a command lin
 ### In release mode
 
 ```
-cargo build --relase
+cargo build --release
 target/release/line-density
 ```
 

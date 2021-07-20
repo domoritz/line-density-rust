@@ -14,7 +14,7 @@ use std::env;
 
 type Image = ImageBuffer<Luma<f32>, Vec<f32>>;
 
-fn run_series(series: &Vec<u32>, width: u32, height: u32) -> Image {
+fn run_series(series: &[u32], width: u32, height: u32) -> Image {
     // initialize new image
     let mut data = Image::new(width, height);
 
@@ -32,10 +32,10 @@ fn run_series(series: &Vec<u32>, width: u32, height: u32) -> Image {
     for x in 0..width {
         let mut sum = 0.0;
         for y in 0..height {
-            sum += data.get_pixel(x,y).data[0];
+            sum += data.get_pixel(x,y)[0];
         }
         for y in 0..height {
-            let value = data.get_pixel(x,y).data[0];
+            let value = data.get_pixel(x,y)[0];
             data.put_pixel(x,y,Luma([value / sum]));
         }
     }
@@ -46,7 +46,7 @@ fn run_series(series: &Vec<u32>, width: u32, height: u32) -> Image {
 /// Reducer that combines counts from two time series.
 fn sum_images(image: Image, mut aggregated: Image) -> Image {
     for (x,y,value) in image.enumerate_pixels() {
-        let new_value = aggregated.get_pixel(x,y).data[0] + value.data[0];
+        let new_value = aggregated.get_pixel(x,y)[0] + value[0];
         aggregated.put_pixel(x,y,Luma([new_value]))
     }
 
@@ -75,7 +75,6 @@ fn main() {
             },
         };
     }
-    
 
     // create sine wave as a model
     let model: Vec<f32> = (0..width).map(|x| {
@@ -124,13 +123,13 @@ fn main() {
 
     // find the maximum value so that we can scale colors
     let max_value = aggregated.pixels().fold(
-        0./0.,
-        |max,pixel| f32::max(max, pixel.data[0])
+        0.0,
+        |max,pixel| f32::max(max, pixel[0])
     );
 
     // create output image
     for (x, y, pixel) in aggregated.enumerate_pixels() {
-        let value = pixel.data[0];
+        let value = pixel[0];
         if value == 0.0 {
             img.put_pixel(x,y,image::Rgb([255,255,255]));
         } else {
