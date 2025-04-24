@@ -3,6 +3,8 @@ name = "line-density"
 version = "0.2.0"
 authors = ["Dominik Moritz <domoritz@gmail.com>"]
 edition = "2024"
+license = "BSD-3-Clause"
+description = "A library for calculating line density"
 
 [dependencies]
 imageproc = "0.25"
