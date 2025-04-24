@@ -2,10 +2,11 @@
 name = "line-density"
 version = "0.2.0"
 authors = ["Dominik Moritz <domoritz@gmail.com>"]
+edition = "2024"
 
 [dependencies]
-imageproc = "0.22"
-image = "0.23.14"
+imageproc = "0.25"
+image = "0.25.0"
 rand = "0.4.2"
-palette = "*"
-rayon = "*"
+palette = "0.3.0"
+rayon = "1.10.0"
